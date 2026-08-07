@@ -4,7 +4,6 @@
 
 A full-stack, responsive web application designed for students to manage, save, and organize their personal study notes securely in real-time. Built with **React**, **Vite**, and **Firebase**.
 
-🌐 **Live Demo:** [personal-portfolio-card-html-css.vercel.app](https://personal-portfolio-card-html-css.vercel.app)
 
 ---
 
