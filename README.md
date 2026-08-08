@@ -1,44 +1,16 @@
-# STUDENT-NOTES-SAVE-WEB-
+# React + Vite
 
-# 📚 Student Notes Save App
+This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
-A full-stack, responsive web application designed for students to manage, save, and organize their personal study notes securely in real-time. Built with **React**, **Vite**, and **Firebase**.
+Currently, two official plugins are available:
 
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
----
+## React Compiler
 
-## ✨ Features
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-* **User Authentication:** Secure signup and login functionality powered by Firebase Auth.
-* **User-Specific Data:** Each student can view, create, edit, and delete only their own notes.
-* **Real-time Cloud Storage:** Cloud Firestore database integration for instant data sync.
-* **Instant Search Filter:** Dynamic search functionality to quickly find saved notes by title or content.
-* **Responsive Dark UI:** Clean, dark-themed user interface optimized for desktop and mobile devices.
-* **Developer Support Section:** Built-in contact details for technical help and user feedback.
+## Expanding the Oxlint configuration
 
----
-
-## 🛠️ Tech Stack
-
-* **Frontend:** React.js, JSX, CSS-in-JS
-* **Build Tool:** Vite
-* **Backend & Database:** Firebase (Authentication & Cloud Firestore)
-* **Hosting:** Vercel
-
----
-
-## 🚀 Getting Started Locally
-
-Follow these steps to set up and run the project locally on your machine:
-
-### Prerequisites
-
-* Node.js (v16.x or higher)
-* npm (Node Package Manager)
-
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/jaypawar-software-dev/student-notes-app.git](https://github.com/jaypawar-software-dev/student-notes-app.git)
-   cd student-notes-app
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
