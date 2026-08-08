@@ -41,48 +41,53 @@ function App() {
     const data = await getDocs(q);
     setNotesList(data.docs.map((d) => ({ id: d.id, ...d.data() })));
   };
-
 const handleSaveNote = async (e) => {
-  e.preventDefault();
-  if (!title || !note) return alert('Please enter title and note!');
+    e.preventDefault();
+    if (!title || !note) return alert('Please enter title and note!');
 
-  let imageUrl = "";
+    try {
+      let imageUrl = "";
 
-  if (image) {
-    const imageRef = ref(storage, `notes_images/${Date.now()}_${image.name}`);
-    await uploadBytes(imageRef, image);
-    imageUrl = await getDownloadURL(imageRef);
-  }
+      if (image) {
+        if (image.size > 1024 * 1024) {
+          return alert("Photo size is too large! Please choose an image under 1 MB.");
+        }
 
-  if (editId) {
-    const updateData = { title, note };
-    if (imageUrl) updateData.imageUrl = imageUrl;
-    
-    await updateDoc(doc(db, 'student_notes', editId), updateData);
-    setEditId(null);
-  } else {
-    await addDoc(collection(db, 'student_notes'), { 
-      title, 
-      note, 
-      userId: user.uid, 
-      userEmail: user.email || 'No Email', 
-      imageUrl: imageUrl, 
-      createdAt: new Date().toLocaleDateString() 
-    });
-  }
+        imageUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(image);
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = (error) => reject(error);
+        });
+      }
 
-  setTitle(''); 
-  setNote('');
-  setImage(null);
-  fetchNotes(user.uid);
-};
- 
+      if (editId) {
+        const updateData = { title, note };
+        if (imageUrl) updateData.imageUrl = imageUrl;
+        
+        await updateDoc(doc(db, 'student_notes', editId), updateData);
+        setEditId(null);
+      } else {
+        await addDoc(collection(db, 'student_notes'), { 
+          title, 
+          note, 
+          userId: user.uid, 
+          userEmail: user.email || 'No Email', 
+          imageUrl: imageUrl, 
+          createdAt: new Date().toLocaleDateString() 
+        });
+      }
 
-  const handleDeleteNote = async (id) => {
-    await deleteDoc(doc(db, 'student_notes', id));
-    fetchNotes(user.uid);
+      setTitle(''); 
+      setNote('');
+      setImage(null);
+      alert('Note saved successfully!');
+      fetchNotes(user.uid);
+    } catch (err) {
+      console.error("Save Error:", err);
+      alert("Error saving note: " + err.message); 
+    }
   };
-
   const handleEditClick = (item) => {
     setEditId(item.id); setTitle(item.title); setNote(item.note);
   };
