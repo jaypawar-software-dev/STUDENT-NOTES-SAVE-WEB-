@@ -14,6 +14,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [editId, setEditId] = useState(null);
   const [notesList, setNotesList] = useState([]);
+  const [image, setImage] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -41,26 +42,41 @@ function App() {
     setNotesList(data.docs.map((d) => ({ id: d.id, ...d.data() })));
   };
 
-  const handleSaveNote = async (e) => {
-    e.preventDefault();
-    if (!title || !note) return alert('Please enter title and note!');
-    if (editId) {
-      await updateDoc(doc(db, 'student_notes',
-         editId),
-          { title, note });
+const handleSaveNote = async (e) => {
+  e.preventDefault();
+  if (!title || !note) return alert('Please enter title and note!');
 
+  let imageUrl = "";
 
-      setEditId(null);
-    } else {
-      await addDoc(collection(db, 'student_notes'),
-       { title, note, userId: user.uid,
-        userEmail: user.email || 'No Email',
-         createdAt: new Date().
-         toLocaleDateString() });
-    }
-    setTitle(''); setNote('');
-    fetchNotes(user.uid);
-  };
+  if (image) {
+    const imageRef = ref(storage, `notes_images/${Date.now()}_${image.name}`);
+    await uploadBytes(imageRef, image);
+    imageUrl = await getDownloadURL(imageRef);
+  }
+
+  if (editId) {
+    const updateData = { title, note };
+    if (imageUrl) updateData.imageUrl = imageUrl;
+    
+    await updateDoc(doc(db, 'student_notes', editId), updateData);
+    setEditId(null);
+  } else {
+    await addDoc(collection(db, 'student_notes'), { 
+      title, 
+      note, 
+      userId: user.uid, 
+      userEmail: user.email || 'No Email', 
+      imageUrl: imageUrl, 
+      createdAt: new Date().toLocaleDateString() 
+    });
+  }
+
+  setTitle(''); 
+  setNote('');
+  setImage(null);
+  fetchNotes(user.uid);
+};
+ 
 
   const handleDeleteNote = async (id) => {
     await deleteDoc(doc(db, 'student_notes', id));
@@ -116,14 +132,6 @@ function App() {
         <form onSubmit={handleAuth} 
         style={
           { display: 'flex', flexDirection: 'column', gap: '15px' }}>
-
-            <input type="text" placeholder="Phone Number..." value={phone_num} onChange={(e) => setnumber(e.target.value)}
-           required style={
-            { padding: '10px', borderRadius: '5px' }} />
-            else if (isRegistering && !/^\d{10}$/.test(phone_num)) {
-              alert('Please enter a valid 10-digit phone number.');
-              return;
-            }
             
           <input type="email" placeholder="Email..." value={email} onChange={(e) => setEmail(e.target.value)}
            required style={
