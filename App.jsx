@@ -47,7 +47,7 @@ function App() {
       await updateDoc(doc(db, 'student_notes', editId), { title, note });
       setEditId(null);
     } else {
-      await addDoc(collection(db, 'student_notes'), { title, note, userId: user.uid, createdAt: new Date().toLocaleDateString() });
+      await addDoc(collection(db, 'student_notes'), { title, note, userId: user.uid,userEmail: user.email, createdAt: new Date().toLocaleDateString() });
     }
     setTitle(''); setNote('');
     fetchNotes(user.uid);
