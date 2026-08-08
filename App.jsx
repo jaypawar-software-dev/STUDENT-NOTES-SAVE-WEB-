@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { db, auth } from './firebase';
+import { db, auth, storage } from './firebase';
 import { collection, addDoc, getDocs, deleteDoc, updateDoc, doc, query, where } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
-
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 function App() {
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState('');
@@ -172,25 +172,37 @@ const handleSaveNote = async (e) => {
 
       <h1 style={
         { textAlign: 'center' }}>Student Notes Save App</h1>
-      <form onSubmit={handleSaveNote} style={
-        { display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+      <form onSubmit={handleSaveNote} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+  
+  <input 
+    type="text" 
+    placeholder="Note Title..." 
+    value={title} 
+    onChange={(e) => setTitle(e.target.value)} 
+    style={{ padding: '10px', borderRadius: '5px' }} 
+  />
+  
+  <textarea 
+    placeholder="Write your note here..." 
+    value={note} 
+    onChange={(e) => setNote(e.target.value)} 
+    rows="4" 
+    style={{ padding: '10px', borderRadius: '5px' }} 
+  />
 
-          <input  type="file"  accept="image/*" onChange={(e) => setImage(e.target.files[0])} className="my-2"
-          style={
-            { padding: '10px', borderRadius: '5px' }} />
+  <input 
+    type="file" 
+    accept="image/*" 
+    onChange={(e) => setImage(e.target.files[0])} 
+    style={{ padding: '10px', borderRadius: '5px' }} 
+  />
 
-        <input type="text" placeholder="Note Title..." value={title} onChange={(e) => setTitle(e.target.value)} 
-        style={
-          { padding: '10px', borderRadius: '5px' }} />
+  
+  <button type="submit" style={{ padding: '10px', borderRadius: '5px', backgroundColor: '#007bff', color: '#fff', border: 'none', cursor: 'pointer' }}>
+    {editId ? 'Update Note' : 'Save Note'}
+  </button>
 
-        <textarea placeholder="Write your note here..." value={note} onChange={(e) => setNote(e.target.value)} rows="4" 
-        style={
-          { padding: '10px', borderRadius: '5px' }} />
-        <button type="submit" 
-        style={
-          { padding: '10px', backgroundColor: editId ? '#FF9800' : '#4CAF50', color: 'white', border: 'none', borderRadius: '5px' }}>{editId ? 'Update Note' : 'Save Note'}</button>
-      </form>
-
+</form>
       <input type="text" placeholder="🔍 Search notes..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} 
       style={
         { padding: '10px', width: '100%', borderRadius: '5px', marginBottom: '25px', boxSizing: 'border-box' }} />
