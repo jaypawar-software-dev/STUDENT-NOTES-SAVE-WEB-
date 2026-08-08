@@ -146,7 +146,6 @@ const handleSaveNote = async (e) => {
             { padding: '10px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '5px' }}>
               {isRegistering ? 'Create Account' : 'Login'}</button>
         </form>
-
         <p style={
           { marginTop: '15px', cursor: 'pointer', color: '#4CAF50' }}
            onClick={() => setIsRegistering(!isRegistering)}>
@@ -176,6 +175,10 @@ const handleSaveNote = async (e) => {
       <form onSubmit={handleSaveNote} style={
         { display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
 
+          <input  type="file"  accept="image/*" onChange={(e) => setImage(e.target.files[0])} className="my-2"
+          style={
+            { padding: '10px', borderRadius: '5px' }} />
+
         <input type="text" placeholder="Note Title..." value={title} onChange={(e) => setTitle(e.target.value)} 
         style={
           { padding: '10px', borderRadius: '5px' }} />
@@ -201,6 +204,12 @@ const handleSaveNote = async (e) => {
             { backgroundColor: '#2a2a2a', padding: '15px', borderRadius: '8px' }}>
             <h3>{item.title}</h3>
             <p>{item.note}</p>
+
+            {item.imageUrl && <img src={item.imageUrl} alt="Note" style={{ maxWidth: '100%', marginTop: '10px', borderRadius: '5px' }} />}
+            <small>Created At: {item.createdAt}</small>
+            <br />
+            <small>By: {item.userEmail}</small>
+            <br />
 
             <div style={
               { display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
