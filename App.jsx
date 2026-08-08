@@ -120,6 +120,10 @@ function App() {
             <input type="text" placeholder="Phone Number..." value={phone_num} onChange={(e) => setnumber(e.target.value)}
            required style={
             { padding: '10px', borderRadius: '5px' }} />
+            else if (isRegistering && !/^\d{10}$/.test(phone_num)) {
+              alert('Please enter a valid 10-digit phone number.');
+              return;
+            }
             
           <input type="email" placeholder="Email..." value={email} onChange={(e) => setEmail(e.target.value)}
            required style={
