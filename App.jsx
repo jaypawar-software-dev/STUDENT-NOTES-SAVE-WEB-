@@ -7,6 +7,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phone_num,setnumber]= useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
@@ -104,7 +105,7 @@ function App() {
     </div>
   );
 
-  
+
   if (!user) {
     return (
       <div style={
@@ -115,6 +116,10 @@ function App() {
         <form onSubmit={handleAuth} 
         style={
           { display: 'flex', flexDirection: 'column', gap: '15px' }}>
+
+            <input type="text" placeholder="Phone Number..." value={phone_num} onChange={(e) => setnumber(e.target.value)}
+           required style={
+            { padding: '10px', borderRadius: '5px' }} />
             
           <input type="email" placeholder="Email..." value={email} onChange={(e) => setEmail(e.target.value)}
            required style={
