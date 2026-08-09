@@ -127,7 +127,6 @@ function App() {
     setIsMenuOpen(false);
   };
 
-  // Fixed Click Event Handler
   const handleNoteClick = (item) => {
     setSelectedNote(item);
     setViewMode('view');
@@ -249,12 +248,6 @@ function App() {
         .full-view-panel {
           animation: fadeIn 0.2s ease-in-out forwards;
         }
-        .note-item {
-          transition: background-color 0.2s ease-in-out;
-        }
-        .note-item:hover {
-          background-color: #383838 !important;
-        }
         .logout-btn {
           background-color: #ff4d4d;
           color: white;
@@ -277,7 +270,7 @@ function App() {
           gap: 6px;
         }
 
-        /* Slide Drawer / Overlay CSS FIXES */
+        /* Slide Drawer / Overlay CSS */
         .drawer-overlay {
           position: fixed;
           top: 0;
@@ -297,7 +290,7 @@ function App() {
           background-color: #181818;
           padding: 20px;
           box-sizing: border-box;
-          z-index: 10000; /* Z-Index वाढवला आहे जेणेकरून क्लिक सहज होईल */
+          z-index: 10000;
           transition: left 0.3s ease-in-out;
           box-shadow: 2px 0 10px rgba(0,0,0,0.5);
           display: flex;
@@ -318,7 +311,7 @@ function App() {
           <button className="menu-btn" onClick={() => setIsMenuOpen(true)}>
             ☰ <span>Menu</span>
           </button>
-          <h2 style={{ fontSize: '18px', margin: 0 }}>Student Notes</h2>
+          <h2 style={{ fontSize: '18px', margin: 0 }}>NOTES SAVIOR</h2>
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -363,39 +356,56 @@ function App() {
           {filteredNotes.length === 0 ? (
             <p style={{ color: '#666', fontSize: '14px' }}>No notes found.</p>
           ) : (
-            filteredNotes.map((item) => (
-              <button 
-                key={item.id} 
-                className="note-item" 
-                onClick={() => handleNoteClick(item)}
-                style={{ 
-                  padding: '12px', 
-                  borderRadius: '6px', 
-                  backgroundColor: selectedNote?.id === item.id && viewMode === 'view' ? '#007bff' : '#262626',
-                  color: '#ffffff',
-                  border: 'none',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  outline: 'none'
-                }}
-              >
-                <span 
+            filteredNotes.map((item) => {
+              const isSelected = selectedNote?.id === item.id && viewMode === 'view';
+              return (
+                <button 
+                  key={item.id} 
+                  onClick={() => handleNoteClick(item)}
                   style={{ 
-                    flex: 1, 
-                    whiteSpace: 'nowrap', 
-                    overflow: 'hidden', 
-                    textOverflow: 'ellipsis',
-                    fontWeight: selectedNote?.id === item.id ? 'bold' : 'normal',
-                    fontSize: '14px'
+                    padding: '12px', 
+                    borderRadius: '6px', 
+                    backgroundColor: isSelected ? '#007bff' : '#262626',
+                    color: '#ffffff',
+                    border: isSelected ? '1px solid #0056b3' : '1px solid #333',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    outline: 'none',
+                    transition: 'all 0.2s ease-in-out'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.backgroundColor = '#383838';
+                      e.currentTarget.style.transform = 'translateX(4px)';
+                      e.currentTarget.style.borderColor = '#007bff';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.backgroundColor = '#262626';
+                      e.currentTarget.style.transform = 'translateX(0px)';
+                      e.currentTarget.style.borderColor = '#333';
+                    }
                   }}
                 >
-                  📝 {item.title || 'Untitled'}
-                </span>
-              </button>
-            ))
+                  <span 
+                    style={{ 
+                      flex: 1, 
+                      whiteSpace: 'nowrap', 
+                      overflow: 'hidden', 
+                      textOverflow: 'ellipsis',
+                      fontWeight: isSelected ? 'bold' : 'normal',
+                      fontSize: '14px'
+                    }}
+                  >
+                    📝 {item.title || 'Untitled'}
+                  </span>
+                </button>
+              );
+            })
           )}
         </div>
 
