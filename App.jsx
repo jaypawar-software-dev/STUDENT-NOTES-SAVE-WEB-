@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { db, auth, storage } from './firebase';
+import { db, auth } from './firebase';
 import { collection, addDoc, getDocs, deleteDoc, updateDoc, doc, query, where } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+
 function App() {
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [phone_num,setnumber]= useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [editId, setEditId] = useState(null);
   const [notesList, setNotesList] = useState([]);
-  const [image, setImage] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -30,42 +28,32 @@ function App() {
     try {
       if (isRegistering) await createUserWithEmailAndPassword(auth, email, password);
       else await signInWithEmailAndPassword(auth, email, password);
-      setEmail(''); setPassword('');
-    } catch (error) { alert(error.message); }
+      setEmail(''); 
+      setPassword('');
+    } catch (error) { 
+      alert(error.message); 
+    } 
   };
 
   const handleLogout = () => signOut(auth);
 
   const fetchNotes = async (userId) => {
-    const q = query(collection(db, 'student_notes'), where('userId', '==', userId));
-    const data = await getDocs(q);
-    setNotesList(data.docs.map((d) => ({ id: d.id, ...d.data() })));
+    try {
+      const q = query(collection(db, 'student_notes'), where('userId', '==', userId));
+      const data = await getDocs(q);
+      setNotesList(data.docs.map((d) => ({ id: d.id, ...d.data() })));
+    } catch (err) {
+      console.error("Fetch Error:", err);
+    }
   };
-const handleSaveNote = async (e) => {
+
+  const handleSaveNote = async (e) => {
     e.preventDefault();
     if (!title || !note) return alert('Please enter title and note!');
 
     try {
-      let imageUrl = "";
-
-      if (image) {
-        if (image.size > 1024 * 1024) {
-          return alert("Photo size is too large! Please choose an image under 1 MB.");
-        }
-
-        imageUrl = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(image);
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = (error) => reject(error);
-        });
-      }
-
       if (editId) {
-        const updateData = { title, note };
-        if (imageUrl) updateData.imageUrl = imageUrl;
-        
-        await updateDoc(doc(db, 'student_notes', editId), updateData);
+        await updateDoc(doc(db, 'student_notes', editId), { title, note });
         setEditId(null);
       } else {
         await addDoc(collection(db, 'student_notes'), { 
@@ -73,14 +61,12 @@ const handleSaveNote = async (e) => {
           note, 
           userId: user.uid, 
           userEmail: user.email || 'No Email', 
-          imageUrl: imageUrl, 
           createdAt: new Date().toLocaleDateString() 
         });
       }
 
       setTitle(''); 
       setNote('');
-      setImage(null);
       alert('Note saved successfully!');
       fetchNotes(user.uid);
     } catch (err) {
@@ -88,8 +74,20 @@ const handleSaveNote = async (e) => {
       alert("Error saving note: " + err.message); 
     }
   };
+
+  const handleDeleteNote = async (id) => {
+    try {
+      await deleteDoc(doc(db, 'student_notes', id));
+      fetchNotes(user.uid);
+    } catch (err) {
+      alert("Error deleting note: " + err.message);
+    }
+  };
+
   const handleEditClick = (item) => {
-    setEditId(item.id); setTitle(item.title); setNote(item.note);
+    setEditId(item.id); 
+    setTitle(item.title); 
+    setNote(item.note);
   };
 
   const filteredNotes = notesList.filter((item) => 
@@ -97,64 +95,81 @@ const handleSaveNote = async (e) => {
     item.note.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const DeveloperContact = () => (
-    <div style={{ marginTop: '40px',
-     paddingTop: '15px',
-      borderTop: '1px solid #444',
-       textAlign: 'center', 
-       fontSize: '14px',
-        color: '#aaa' }}>
+  const DeveloperContact = () => {
+    const [showHelp, setShowHelp] = useState(false);
 
+    return (
+      <div style={{ marginTop: '20px', textAlign: 'center' }}>
+        <button 
+          type="button"
+          onClick={() => setShowHelp(!showHelp)}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#dc3545',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            marginBottom: '15px'
+          }}
+        >
+          {showHelp ? 'Hide Help Center' : 'Help Center'}
+        </button>
 
-      <p style={{ margin: '5px 0',
-         fontWeight: 'bold', 
-         color: '#ddd' }}
-          >Need Help or Facing Issues?</p>
-
-
-      <p style={{ margin: '5px 0' }}
-      >Developer: <span style={{ color: '#fff',
-       fontWeight: 'bold' }}
-       >Jay Pawar</span></p>
-
-      <p style={{ margin: '5px 0' }} >Email: <a href="mailto:jaypawar8399@gmail.com" 
-      style={{ color: '#4CAF50', 
-      textDecoration: 'none' }} >jaypawar8399@gmail.com</a></p>
-
-      <p style={{ margin: '5px 0' }}>Contact: <a href="tel:8317289128"
-       style={{ color: '#4CAF50', textDecoration: 'none' }}>+91 8317289128</a></p>
-    </div>
-  );
-
+        {showHelp && (
+          <div style={{
+            paddingTop: '15px',
+            borderTop: '1px solid #444',
+            fontSize: '14px',
+            color: '#aaa',
+            backgroundColor: '#1e1e1e',
+            padding: '15px',
+            borderRadius: '8px'
+          }}>
+            <p style={{ margin: '5px 0', fontWeight: 'bold', color: '#ddd' }}>
+              Need Help or Facing Issues?
+            </p>
+            <p style={{ margin: '5px 0' }}>
+              Developer: <span style={{ color: '#fff', fontWeight: 'bold' }}>Jay Pawar</span>
+            </p>
+            <p style={{ margin: '5px 0' }}>
+              Email: <a href="mailto:jaypawar8399@gmail.com" style={{ color: '#4CAF50', textDecoration: 'none' }}>jaypawar8399@gmail.com</a>
+            </p>
+            <p style={{ margin: '5px 0' }}>
+              Contact: <a href="tel:8317289128" style={{ color: '#4CAF50', textDecoration: 'none' }}>+91 8317289128</a>
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (!user) {
     return (
-      <div style={
-        { padding: '30px', color: 'white', maxWidth: '400px', margin: '30px auto', textAlign: 'center' }}>
-
+      <div style={{ padding: '30px', color: 'white', maxWidth: '400px', margin: '30px auto', textAlign: 'center' }}>
         <h2>{isRegistering ? 'Register' : 'Login'}</h2>
-
-        <form onSubmit={handleAuth} 
-        style={
-          { display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            
-          <input type="email" placeholder="Email..." value={email} onChange={(e) => setEmail(e.target.value)}
-           required style={
-            { padding: '10px', borderRadius: '5px' }} />
-
-          <input type="password" placeholder="Password..." value={password} onChange={(e) => setPassword(e.target.value)}
-           required style={
-            { padding: '10px', borderRadius: '5px' }} />
-            
-          <button type="submit" 
-          style={
-            { padding: '10px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '5px' }}>
-              {isRegistering ? 'Create Account' : 'Login'}</button>
+        <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <input 
+            type="email" 
+            placeholder="Email..." 
+            value={email} 
+            onChange={(e) => setEmail(e.target.value)}
+            required 
+            style={{ padding: '10px', borderRadius: '5px' }} 
+          />
+          <input 
+            type="password" 
+            placeholder="Password..." 
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)}
+            required 
+            style={{ padding: '10px', borderRadius: '5px' }} 
+          />
+          <button type="submit" style={{ padding: '10px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '5px' }}>
+            {isRegistering ? 'Create Account' : 'Login'}
+          </button>
         </form>
-        <p style={
-          { marginTop: '15px', cursor: 'pointer', color: '#4CAF50' }}
-           onClick={() => setIsRegistering(!isRegistering)}>
-
+        <p style={{ marginTop: '15px', cursor: 'pointer', color: '#4CAF50' }} onClick={() => setIsRegistering(!isRegistering)}>
           {isRegistering ? 'Already have an account? Login' : "Don't have an account? Register"}
         </p>
         <DeveloperContact />
@@ -163,83 +178,67 @@ const handleSaveNote = async (e) => {
   }
 
   return (
-    <div style={
-      { padding: '30px', color: 'white', maxWidth: '600px', margin: '0 auto' }}>
-
-      <div style={
-        { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-
+    <div style={{ padding: '30px', color: 'white', maxWidth: '600px', margin: '0 auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <span>Welcome, {user.email}</span>
-        
-        <button onClick={handleLogout} style={
-          { backgroundColor: '#ff4d4d', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '5px' }}>Logout</button>
+        <button onClick={handleLogout} style={{ backgroundColor: '#ff4d4d', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '5px' }}>
+          Logout
+        </button>
       </div>
 
-      <h1 style={
-        { textAlign: 'center' }}>Student Notes Save App</h1>
+      <h1 style={{ textAlign: 'center' }}>Student Notes Save App</h1>
+      
       <form onSubmit={handleSaveNote} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-  
-  <input 
-    type="text" 
-    placeholder="Note Title..." 
-    value={title} 
-    onChange={(e) => setTitle(e.target.value)} 
-    style={{ padding: '10px', borderRadius: '5px' }} 
-  />
-  
-  <textarea 
-    placeholder="Write your note here..." 
-    value={note} 
-    onChange={(e) => setNote(e.target.value)} 
-    rows="4" 
-    style={{ padding: '10px', borderRadius: '5px' }} 
-  />
+        <input 
+          type="text" 
+          placeholder="Note Title..." 
+          value={title} 
+          onChange={(e) => setTitle(e.target.value)} 
+          style={{ padding: '10px', borderRadius: '5px' }} 
+        />
+        <textarea 
+          placeholder="Write your note here..." 
+          value={note} 
+          onChange={(e) => setNote(e.target.value)} 
+          rows="4" 
+          style={{ padding: '10px', borderRadius: '5px' }} 
+        />
+        <button type="submit" style={{ padding: '10px', borderRadius: '5px', backgroundColor: '#007bff', color: '#fff', border: 'none', cursor: 'pointer' }}>
+          {editId ? 'Update Note' : 'Save Note'}
+        </button>
+      </form>
 
-  <input 
-    type="file" 
-    accept="image/*" 
-    onChange={(e) => setImage(e.target.files[0])} 
-    style={{ padding: '10px', borderRadius: '5px' }} 
-  />
+      <input 
+        type="text" 
+        placeholder="🔍 Search notes..." 
+        value={searchTerm} 
+        onChange={(e) => setSearchTerm(e.target.value)} 
+        style={{ padding: '10px', width: '100%', borderRadius: '5px', marginBottom: '25px', boxSizing: 'border-box' }} 
+      />
 
-  
-  <button type="submit" style={{ padding: '10px', borderRadius: '5px', backgroundColor: '#007bff', color: '#fff', border: 'none', cursor: 'pointer' }}>
-    {editId ? 'Update Note' : 'Save Note'}
-  </button>
-
-</form>
-      <input type="text" placeholder="🔍 Search notes..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} 
-      style={
-        { padding: '10px', width: '100%', borderRadius: '5px', marginBottom: '25px', boxSizing: 'border-box' }} />
       <h2>Saved Notes</h2>
 
-      <div style={
-        { display: 'flex', flexDirection: 'column', gap: '15px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
         {filteredNotes.map((item) => (
-          <div key={item.id} 
-          style={
-            { backgroundColor: '#2a2a2a', padding: '15px', borderRadius: '8px' }}>
+          <div key={item.id} style={{ backgroundColor: '#2a2a2a', padding: '15px', borderRadius: '8px' }}>
             <h3>{item.title}</h3>
             <p>{item.note}</p>
+            
+            <small>Created At: {item.createdAt}</small><br />
+            <small>By: {item.userEmail}</small><br />
 
-            {item.imageUrl && <img src={item.imageUrl} alt="Note" style={{ maxWidth: '100%', marginTop: '10px', borderRadius: '5px' }} />}
-            <small>Created At: {item.createdAt}</small>
-            <br />
-            <small>By: {item.userEmail}</small>
-            <br />
-
-            <div style={
-              { display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-              <button onClick={() => handleEditClick(item)} 
-              style={
-                { backgroundColor: '#FF9800', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '5px' }}>Edit</button>
-              <button onClick={() => handleDeleteNote(item.id)} 
-              style={
-                { backgroundColor: '#ff4d4d', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '5px' }}>Delete</button>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
+              <button onClick={() => handleEditClick(item)} style={{ backgroundColor: '#FF9800', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '5px' }}>
+                Edit
+              </button>
+              <button onClick={() => handleDeleteNote(item.id)} style={{ backgroundColor: '#ff4d4d', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '5px' }}>
+                Delete
+              </button>
             </div>
           </div>
         ))}
       </div>
+
       <DeveloperContact />
     </div>
   );
