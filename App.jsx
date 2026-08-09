@@ -121,7 +121,6 @@ function App() {
     setViewMode('edit');
   };
 
-  // Hover Event to slide and open Note when hovering with mouse
   const handleNoteHover = (item) => {
     setSelectedNote(item);
     if (viewMode !== 'edit') {
@@ -200,7 +199,7 @@ function App() {
 
   if (!user) {
     return (
-      <div style={{ padding: '30px', color: 'white', maxWidth: '400px', margin: '30px auto', textAlign: 'center' }}>
+      <div style={{ padding: '20px', color: 'white', maxWidth: '400px', margin: '30px auto', textAlign: 'center' }}>
         <h2>{isRegistering ? 'Register' : 'Login'}</h2>
         <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <input 
@@ -234,16 +233,17 @@ function App() {
 
   return (
     <div style={{ color: 'white', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* CSS Animation for Sliding Effect & Hover Effects */}
+      
+      {/* Mobile/Tablet साठी CSS Rules जोडले आहेत */}
       <style>{`
         @keyframes slideIn {
           from {
             opacity: 0;
-            transform: translateX(30px);
+            transform: translateY(15px);
           }
           to {
             opacity: 1;
-            transform: translateX(0);
+            transform: translateY(0);
           }
         }
         .slide-panel {
@@ -260,34 +260,70 @@ function App() {
           background-color: #ff4d4d;
           color: white;
           border: none;
-          padding: 8px 16px;
+          padding: 8px 14px;
           border-radius: 5px;
           cursor: pointer;
           font-weight: bold;
-          transition: all 0.3s ease-in-out;
         }
-        .logout-btn:hover {
-          transform: scale(1.05);
-          background-color: #e60000;
-          box-shadow: 0 4px 8px rgba(255, 77, 77, 0.4);
+
+        /* Container Layout Responsiveness */
+        .app-container {
+          display: flex;
+          flex: 1;
+          flex-direction: row;
+        }
+        .sidebar {
+          width: 300px;
+          background-color: #181818;
+          padding: 20px;
+          border-right: 1px solid #333;
+          box-sizing: border-box;
+        }
+        .main-content {
+          flex: 1;
+          padding: 20px;
+          background-color: #121212;
+          overflow-y: auto;
+          max-height: calc(100vh - 70px);
+        }
+
+        /* Mobile Screeens (<= 768px) साठी बदल */
+        @media (max-width: 768px) {
+          .app-container {
+            flex-direction: column;
+          }
+          .sidebar {
+            width: 100%;
+            border-right: none;
+            border-bottom: 1px solid #333;
+            padding: 15px;
+          }
+          .main-content {
+            max-height: none;
+            padding: 15px;
+          }
+          .notes-scroll-list {
+            max-height: 200px !important;
+          }
         }
       `}</style>
 
       {/* Top Navbar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 30px', backgroundColor: '#1f1f1f', borderBottom: '1px solid #333' }}>
-        <h2>Student Notes Save App</h2>
-        <div>
-          <span style={{ marginRight: '15px', fontSize: '14px', color: '#bbb' }}>{user.email}</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', backgroundColor: '#1f1f1f', borderBottom: '1px solid #333' }}>
+        <h2 style={{ fontSize: '18px', margin: 0 }}>Student Notes</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '12px', color: '#bbb' }}>{user.email}</span>
           <button className="logout-btn" onClick={handleLogout}>
             Logout 🚪
           </button>
         </div>
       </div>
 
-      {/* Main Sidebar Layout */}
-      <div style={{ display: 'flex', flex: 1 }}>
-        {/* Left Sidebar Menu */}
-        <div style={{ width: '300px', backgroundColor: '#181818', padding: '20px', borderRight: '1px solid #333' }}>
+      {/* Main Layout */}
+      <div className="app-container">
+        
+        {/* Left Sidebar */}
+        <div className="sidebar">
           
           <button 
             onClick={handleCreateNewClick}
@@ -306,7 +342,7 @@ function App() {
 
           <h3 style={{ fontSize: '14px', color: '#888', marginBottom: '10px', letterSpacing: '1px' }}>SAVED NOTES</h3>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '55vh', overflowY: 'auto' }}>
+          <div className="notes-scroll-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '45vh', overflowY: 'auto' }}>
             {filteredNotes.length === 0 ? (
               <p style={{ color: '#666', fontSize: '14px' }}>No notes found.</p>
             ) : (
@@ -345,22 +381,32 @@ function App() {
         </div>
 
         {/* Right Content Area */}
-        <div style={{ flex: 1, padding: '30px', backgroundColor: '#121212', overflow: 'hidden' }}>
+        <div className="main-content">
           
-          {/* View Mode with CSS Slide Animation */}
+          {/* Note View Mode (With Auto-Scroll Fix) */}
           {viewMode === 'view' && selectedNote && (
-            <div className="slide-panel" style={{ backgroundColor: '#1e1e1e', padding: '25px', borderRadius: '8px', borderLeft: '4px solid #17a2b8' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h2 style={{ margin: 0, color: '#fff' }}>{selectedNote.title}</h2>
-                <span style={{ fontSize: '12px', color: '#17a2b8', backgroundColor: '#0e2a30', padding: '4px 8px', borderRadius: '4px' }}>Hover Viewing Mode</span>
+            <div className="slide-panel" style={{ backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '8px', borderLeft: '4px solid #17a2b8' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
+                <h2 style={{ margin: 0, color: '#fff', wordBreak: 'break-word', fontSize: '20px' }}>{selectedNote.title}</h2>
+                <span style={{ fontSize: '12px', color: '#17a2b8', backgroundColor: '#0e2a30', padding: '4px 8px', borderRadius: '4px' }}>Viewing Note</span>
               </div>
               
-              <p style={{ fontSize: '16px', lineHeight: '1.6', color: '#ddd', whiteSpace: 'pre-wrap', backgroundColor: '#181818', padding: '15px', borderRadius: '5px' }}>
-                {selectedNote.note}
-              </p>
+              {/* Scrollable Note Content Box */}
+              <div style={{ 
+                maxHeight: '350px', 
+                overflowY: 'auto', 
+                backgroundColor: '#181818', 
+                padding: '15px', 
+                borderRadius: '5px',
+                border: '1px solid #333'
+              }}>
+                <p style={{ fontSize: '15px', lineHeight: '1.6', color: '#ddd', whiteSpace: 'pre-wrap', margin: 0, wordBreak: 'break-word' }}>
+                  {selectedNote.note}
+                </p>
+              </div>
               
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', paddingTop: '15px', borderTop: '1px solid #333' }}>
-                <small style={{ color: '#888' }}>Created: {selectedNote.createdAt} | By: {selectedNote.userEmail}</small>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', paddingTop: '15px', borderTop: '1px solid #333', flexWrap: 'wrap', gap: '10px' }}>
+                <small style={{ color: '#888' }}>Created: {selectedNote.createdAt}</small>
                 
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={() => handleEditClick(selectedNote)} style={{ backgroundColor: '#FF9800', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer' }}>
@@ -376,7 +422,7 @@ function App() {
 
           {/* Create / Edit Form Mode */}
           {(viewMode === 'create' || viewMode === 'edit') && (
-            <div style={{ backgroundColor: '#1e1e1e', padding: '25px', borderRadius: '8px' }}>
+            <div style={{ backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '8px' }}>
               <h3>{viewMode === 'edit' ? '✏️ Edit Note' : '➕ Add New Note'}</h3>
               <form onSubmit={handleSaveNote} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 <input 
@@ -384,14 +430,14 @@ function App() {
                   placeholder="Note Title..." 
                   value={title} 
                   onChange={(e) => setTitle(e.target.value)} 
-                  style={{ padding: '12px', borderRadius: '5px', backgroundColor: '#2a2a2a', color: '#fff', border: '1px solid #444' }} 
+                  style={{ padding: '12px', borderRadius: '5px', backgroundColor: '#2a2a2a', color: '#fff', border: '1px solid #444', width: '100%', boxSizing: 'border-box' }} 
                 />
                 <textarea 
                   placeholder="Write your note here..." 
                   value={note} 
                   onChange={(e) => setNote(e.target.value)} 
-                  rows="6" 
-                  style={{ padding: '12px', borderRadius: '5px', backgroundColor: '#2a2a2a', color: '#fff', border: '1px solid #444' }} 
+                  rows="8" 
+                  style={{ padding: '12px', borderRadius: '5px', backgroundColor: '#2a2a2a', color: '#fff', border: '1px solid #444', width: '100%', boxSizing: 'border-box' }} 
                 />
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button type="submit" style={{ padding: '10px 20px', borderRadius: '5px', backgroundColor: '#007bff', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
