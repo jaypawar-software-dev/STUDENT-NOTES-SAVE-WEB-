@@ -16,7 +16,10 @@ function App() {
   const [notesList, setNotesList] = useState([]);
   
   const [selectedNote, setSelectedNote] = useState(null);
-  const [viewMode, setViewMode] = useState('create');
+  const [viewMode, setViewMode] = useState('create'); // 'create', 'view', 'edit'
+  
+  // Menu Open/Close State
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -55,6 +58,7 @@ function App() {
       await signOut(auth);
       setSelectedNote(null);
       setViewMode('create');
+      setIsMenuOpen(false);
     } catch (error) {
       alert("Error logging out: " + error.message);
     }
@@ -120,12 +124,14 @@ function App() {
     setTitle(item.title); 
     setNote(item.note);
     setViewMode('edit');
+    setIsMenuOpen(false);
   };
 
-  // Click केल्यावर Direct नोट Full View मध्ये ओपन होईल
+  // Fixed Click Event Handler
   const handleNoteClick = (item) => {
     setSelectedNote(item);
     setViewMode('view');
+    setIsMenuOpen(false);
   };
 
   const handleCreateNewClick = () => {
@@ -134,6 +140,7 @@ function App() {
     setTitle('');
     setNote('');
     setViewMode('create');
+    setIsMenuOpen(false);
   };
 
   const handleCancelEdit = () => {
@@ -243,10 +250,10 @@ function App() {
           animation: fadeIn 0.2s ease-in-out forwards;
         }
         .note-item {
-          transition: all 0.2s ease-in-out;
+          transition: background-color 0.2s ease-in-out;
         }
         .note-item:hover {
-          background-color: #333 !important;
+          background-color: #383838 !important;
         }
         .logout-btn {
           background-color: #ff4d4d;
@@ -257,42 +264,63 @@ function App() {
           cursor: pointer;
           font-weight: bold;
         }
-
-        .app-container {
+        .menu-btn {
+          background-color: #333;
+          color: white;
+          border: 1px solid #555;
+          padding: 8px 12px;
+          border-radius: 5px;
+          cursor: pointer;
+          font-size: 16px;
           display: flex;
-          flex: 1;
+          align-items: center;
+          gap: 6px;
         }
-        .sidebar {
-          width: 320px;
+
+        /* Slide Drawer / Overlay CSS FIXES */
+        .drawer-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          background: rgba(0, 0, 0, 0.7);
+          z-index: 999;
+          display: ${isMenuOpen ? 'block' : 'none'};
+        }
+        .drawer-content {
+          position: fixed;
+          top: 0;
+          left: ${isMenuOpen ? '0' : '-320px'};
+          width: 300px;
+          height: 100vh;
           background-color: #181818;
           padding: 20px;
-          border-right: 1px solid #333;
           box-sizing: border-box;
+          z-index: 10000; /* Z-Index वाढवला आहे जेणेकरून क्लिक सहज होईल */
+          transition: left 0.3s ease-in-out;
+          box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+          display: flex;
+          flex-direction: column;
         }
+
         .main-content {
           flex: 1;
           padding: 20px;
           background-color: #121212;
           overflow-y: auto;
         }
-
-        /* Mobile View Rules */
-        @media (max-width: 768px) {
-          .sidebar {
-            width: 100%;
-            border-right: none;
-            display: ${viewMode === 'view' ? 'none' : 'block'};
-          }
-          .main-content {
-            display: ${viewMode === 'view' ? 'block' : 'block'};
-            padding: 15px;
-          }
-        }
       `}</style>
 
-      {/* Top Navbar */}
+      {/* Top Navbar Menu Button */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', backgroundColor: '#1f1f1f', borderBottom: '1px solid #333' }}>
-        <h2 style={{ fontSize: '18px', margin: 0 }}>Student Notes</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <button className="menu-btn" onClick={() => setIsMenuOpen(true)}>
+            ☰ <span>Menu</span>
+          </button>
+          <h2 style={{ fontSize: '18px', margin: 0 }}>Student Notes</h2>
+        </div>
+        
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '12px', color: '#bbb' }}>{user.email}</span>
           <button className="logout-btn" onClick={handleLogout}>
@@ -301,149 +329,171 @@ function App() {
         </div>
       </div>
 
-      <div className="app-container">
-        
-        {/* Left Sidebar / Main List */}
-        <div className="sidebar">
-          
+      {/* Menu Overlay */}
+      <div className="drawer-overlay" onClick={() => setIsMenuOpen(false)}></div>
+
+      {/* Drawer Menu */}
+      <div className="drawer-content">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h3 style={{ margin: 0, fontSize: '16px', color: '#4CAF50' }}>📁 Saved Notes Menu</h3>
           <button 
-            onClick={handleCreateNewClick}
-            style={{ width: '100%', padding: '12px', backgroundColor: '#28a745', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', marginBottom: '15px' }}
+            onClick={() => setIsMenuOpen(false)}
+            style={{ background: 'none', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' }}
           >
-            + Create New Note
+            ✖
           </button>
+        </div>
 
-          <input 
-            type="text" 
-            placeholder="🔍 Search notes..." 
-            value={searchTerm} 
-            onChange={(e) => setSearchTerm(e.target.value)} 
-            style={{ padding: '10px', width: '100%', borderRadius: '5px', marginBottom: '15px', boxSizing: 'border-box', backgroundColor: '#2a2a2a', color: '#fff', border: '1px solid #444' }} 
-          />
+        <button 
+          onClick={handleCreateNewClick}
+          style={{ width: '100%', padding: '12px', backgroundColor: '#28a745', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', marginBottom: '15px' }}
+        >
+          + Create New Note
+        </button>
 
-          <h3 style={{ fontSize: '14px', color: '#888', marginBottom: '10px', letterSpacing: '1px' }}>SAVED NOTES</h3>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '55vh', overflowY: 'auto' }}>
-            {filteredNotes.length === 0 ? (
-              <p style={{ color: '#666', fontSize: '14px' }}>No notes found.</p>
-            ) : (
-              filteredNotes.map((item) => (
-                <div 
-                  key={item.id} 
-                  className="note-item" 
-                  onClick={() => handleNoteClick(item)}
+        <input 
+          type="text" 
+          placeholder="🔍 Search notes..." 
+          value={searchTerm} 
+          onChange={(e) => setSearchTerm(e.target.value)} 
+          style={{ padding: '10px', width: '100%', borderRadius: '5px', marginBottom: '15px', boxSizing: 'border-box', backgroundColor: '#2a2a2a', color: '#fff', border: '1px solid #444' }} 
+        />
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, overflowY: 'auto' }}>
+          {filteredNotes.length === 0 ? (
+            <p style={{ color: '#666', fontSize: '14px' }}>No notes found.</p>
+          ) : (
+            filteredNotes.map((item) => (
+              <button 
+                key={item.id} 
+                className="note-item" 
+                onClick={() => handleNoteClick(item)}
+                style={{ 
+                  padding: '12px', 
+                  borderRadius: '6px', 
+                  backgroundColor: selectedNote?.id === item.id && viewMode === 'view' ? '#007bff' : '#262626',
+                  color: '#ffffff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  outline: 'none'
+                }}
+              >
+                <span 
                   style={{ 
-                    padding: '14px', 
-                    borderRadius: '6px', 
-                    backgroundColor: selectedNote?.id === item.id && viewMode === 'view' ? '#007bff' : '#262626',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center'
+                    flex: 1, 
+                    whiteSpace: 'nowrap', 
+                    overflow: 'hidden', 
+                    textOverflow: 'ellipsis',
+                    fontWeight: selectedNote?.id === item.id ? 'bold' : 'normal',
+                    fontSize: '14px'
                   }}
                 >
-                  <span 
-                    style={{ 
-                      flex: 1, 
-                      whiteSpace: 'nowrap', 
-                      overflow: 'hidden', 
-                      textOverflow: 'ellipsis',
-                      fontWeight: selectedNote?.id === item.id ? 'bold' : 'normal',
-                      fontSize: '15px'
-                    }}
-                  >
-                    📝 {item.title || 'Untitled'}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-          
-          <DeveloperContact />
+                  📝 {item.title || 'Untitled'}
+                </span>
+              </button>
+            ))
+          )}
         </div>
 
-        {/* Right Content Area / Direct Note Display */}
-        <div className="main-content">
-          
-          {/* Direct Open Note Display Mode */}
-          {viewMode === 'view' && selectedNote ? (
-            <div className="full-view-panel" style={{ backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '8px', borderLeft: '4px solid #17a2b8' }}>
-              
-              <button 
-                onClick={handleCreateNewClick}
-                style={{ backgroundColor: '#444', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '5px', cursor: 'pointer', marginBottom: '15px', fontWeight: 'bold' }}
-              >
-                ⬅ Back to List
-              </button>
+        <DeveloperContact />
+      </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
-                <h2 style={{ margin: 0, color: '#fff', wordBreak: 'break-word', fontSize: '22px' }}>{selectedNote.title}</h2>
-                <span style={{ fontSize: '12px', color: '#17a2b8', backgroundColor: '#0e2a30', padding: '4px 8px', borderRadius: '4px' }}>Opened Note</span>
-              </div>
+      {/* Main Content Area */}
+      <div className="main-content">
+        
+        {/* View Mode */}
+        {viewMode === 'view' && selectedNote && (
+          <div className="full-view-panel" style={{ backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '8px', borderLeft: '4px solid #17a2b8' }}>
+            
+            <button 
+              onClick={handleCreateNewClick}
+              style={{ backgroundColor: '#444', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '5px', cursor: 'pointer', marginBottom: '15px', fontWeight: 'bold' }}
+            >
+              ➕ Create New Note
+            </button>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
+              <h2 style={{ margin: 0, color: '#fff', wordBreak: 'break-word', fontSize: '22px' }}>{selectedNote.title}</h2>
+              <span style={{ fontSize: '12px', color: '#17a2b8', backgroundColor: '#0e2a30', padding: '4px 8px', borderRadius: '4px' }}>Opened Note</span>
+            </div>
+            
+            <div style={{ 
+              minHeight: '200px',
+              maxHeight: '60vh', 
+              overflowY: 'auto', 
+              backgroundColor: '#181818', 
+              padding: '15px', 
+              borderRadius: '5px',
+              border: '1px solid #333'
+            }}>
+              <p style={{ fontSize: '16px', lineHeight: '1.6', color: '#ddd', whiteSpace: 'pre-wrap', margin: 0, wordBreak: 'break-word' }}>
+                {selectedNote.note}
+              </p>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', paddingTop: '15px', borderTop: '1px solid #333', flexWrap: 'wrap', gap: '10px' }}>
+              <small style={{ color: '#888' }}>Created: {selectedNote.createdAt}</small>
               
-              <div style={{ 
-                minHeight: '200px',
-                maxHeight: '60vh', 
-                overflowY: 'auto', 
-                backgroundColor: '#181818', 
-                padding: '15px', 
-                borderRadius: '5px',
-                border: '1px solid #333'
-              }}>
-                <p style={{ fontSize: '16px', lineHeight: '1.6', color: '#ddd', whiteSpace: 'pre-wrap', margin: 0, wordBreak: 'break-word' }}>
-                  {selectedNote.note}
-                </p>
-              </div>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', paddingTop: '15px', borderTop: '1px solid #333', flexWrap: 'wrap', gap: '10px' }}>
-                <small style={{ color: '#888' }}>Created: {selectedNote.createdAt}</small>
-                
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={() => handleEditClick(selectedNote)} style={{ backgroundColor: '#FF9800', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer' }}>
-                    ✏️ Edit
-                  </button>
-                  <button onClick={() => handleDeleteNote(selectedNote.id)} style={{ backgroundColor: '#ff4d4d', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer' }}>
-                    🗑️ Delete
-                  </button>
-                </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button onClick={() => handleEditClick(selectedNote)} style={{ backgroundColor: '#FF9800', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
+                  ✏️ Edit
+                </button>
+                <button onClick={() => handleDeleteNote(selectedNote.id)} style={{ backgroundColor: '#ff4d4d', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
+                  🗑️ Delete
+                </button>
               </div>
             </div>
-          ) : (
-            /* Create / Edit Form Mode */
-            (viewMode === 'create' || viewMode === 'edit') && (
-              <div style={{ backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '8px' }}>
-                <h3>{viewMode === 'edit' ? '✏️ Edit Note' : '➕ Add New Note'}</h3>
-                <form onSubmit={handleSaveNote} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                  <input 
-                    type="text" 
-                    placeholder="Note Title..." 
-                    value={title} 
-                    onChange={(e) => setTitle(e.target.value)} 
-                    style={{ padding: '12px', borderRadius: '5px', backgroundColor: '#2a2a2a', color: '#fff', border: '1px solid #444', width: '100%', boxSizing: 'border-box' }} 
-                  />
-                  <textarea 
-                    placeholder="Write your note here..." 
-                    value={note} 
-                    onChange={(e) => setNote(e.target.value)} 
-                    rows="8" 
-                    style={{ padding: '12px', borderRadius: '5px', backgroundColor: '#2a2a2a', color: '#fff', border: '1px solid #444', width: '100%', boxSizing: 'border-box' }} 
-                  />
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button type="submit" style={{ padding: '10px 20px', borderRadius: '5px', backgroundColor: '#007bff', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
-                      {viewMode === 'edit' ? 'Update Note' : 'Save Note'}
-                    </button>
-                    
-                    {viewMode === 'edit' && (
-                      <button type="button" onClick={handleCancelEdit} style={{ padding: '10px 20px', borderRadius: '5px', backgroundColor: '#6c757d', color: '#fff', border: 'none', cursor: 'pointer' }}>
-                        Cancel
-                      </button>
-                    )}
-                  </div>
-                </form>
-              </div>
-            )
-          )}
+          </div>
+        )}
 
-        </div>
+        {/* Create / Edit Form Mode */}
+        {(viewMode === 'create' || viewMode === 'edit') && (
+          <div style={{ backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '8px' }}>
+            
+            {viewMode === 'edit' && (
+              <button 
+                onClick={handleCancelEdit}
+                style={{ backgroundColor: '#444', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '5px', cursor: 'pointer', marginBottom: '15px', fontWeight: 'bold' }}
+              >
+                ⬅ Cancel Edit
+              </button>
+            )}
+
+            <h3>{viewMode === 'edit' ? '✏️ Edit Note' : '➕ Add New Note'}</h3>
+            <form onSubmit={handleSaveNote} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <input 
+                type="text" 
+                placeholder="Note Title..." 
+                value={title} 
+                onChange={(e) => setTitle(e.target.value)} 
+                style={{ padding: '12px', borderRadius: '5px', backgroundColor: '#2a2a2a', color: '#fff', border: '1px solid #444', width: '100%', boxSizing: 'border-box' }} 
+              />
+              <textarea 
+                placeholder="Write your note here..." 
+                value={note} 
+                onChange={(e) => setNote(e.target.value)} 
+                rows="8" 
+                style={{ padding: '12px', borderRadius: '5px', backgroundColor: '#2a2a2a', color: '#fff', border: '1px solid #444', width: '100%', boxSizing: 'border-box' }} 
+              />
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="submit" style={{ padding: '10px 20px', borderRadius: '5px', backgroundColor: '#007bff', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+                  {viewMode === 'edit' ? 'Update Note' : 'Save Note'}
+                </button>
+                
+                {viewMode === 'edit' && (
+                  <button type="button" onClick={handleCancelEdit} style={{ padding: '10px 20px', borderRadius: '5px', backgroundColor: '#6c757d', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        )}
+
       </div>
     </div>
   );
