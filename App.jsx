@@ -15,8 +15,8 @@ function App() {
   const [editId, setEditId] = useState(null);
   const [notesList, setNotesList] = useState([]);
   
-  // Selected Note दाखवण्यासाठी नवीन State
   const [selectedNote, setSelectedNote] = useState(null);
+  const [viewMode, setViewMode] = useState('create'); // 'create', 'view',edit'
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -47,9 +47,6 @@ function App() {
       const data = await getDocs(q);
       const fetchedNotes = data.docs.map((d) => ({ id: d.id, ...d.data() }));
       setNotesList(fetchedNotes);
-      if (fetchedNotes.length > 0 && !selectedNote) {
-        setSelectedNote(fetchedNotes[0]); // बाय-डिफॉल्ट पहिली नोट सिलेक्ट राहील
-      }
     } catch (err) {
       console.error("Fetch Error:", err);
     }
@@ -63,6 +60,7 @@ function App() {
       if (editId) {
         await updateDoc(doc(db, 'student_notes', editId), { title, note });
         setEditId(null);
+        alert('Note updated successfully!');
       } else {
         await addDoc(collection(db, 'student_notes'), { 
           title, 
@@ -71,11 +69,12 @@ function App() {
           userEmail: user.email || 'No Email', 
           createdAt: new Date().toLocaleDateString() 
         });
+        alert('Note saved successfully!');
       }
 
       setTitle(''); 
       setNote('');
-      alert('Note saved successfully!');
+      setViewMode('create');
       fetchNotes(user.uid);
     } catch (err) {
       console.error("Save Error:", err);
@@ -84,9 +83,11 @@ function App() {
   };
 
   const handleDeleteNote = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this note?")) return;
     try {
       await deleteDoc(doc(db, 'student_notes', id));
       setSelectedNote(null);
+      setViewMode('create');
       fetchNotes(user.uid);
     } catch (err) {
       alert("Error deleting note: " + err.message);
@@ -97,6 +98,12 @@ function App() {
     setEditId(item.id); 
     setTitle(item.title); 
     setNote(item.note);
+    setViewMode('edit');
+  };
+
+  const handleViewClick = (item) => {
+    setSelectedNote(item);
+    setViewMode('view');
   };
 
   const filteredNotes = notesList.filter((item) => 
@@ -190,7 +197,7 @@ function App() {
     <div style={{ color: 'white', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Top Navbar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 30px', backgroundColor: '#1f1f1f', borderBottom: '1px solid #333' }}>
-        <h2>Student Notes App</h2>
+        <h2>NOTES SAVIOR</h2>
         <div>
           <span style={{ marginRight: '15px', fontSize: '14px', color: '#bbb' }}>{user.email}</span>
           <button onClick={handleLogout} style={{ backgroundColor: '#ff4d4d', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '5px', cursor: 'pointer' }}>
@@ -202,9 +209,9 @@ function App() {
       {/* Main Sidebar Layout */}
       <div style={{ display: 'flex', flex: 1 }}>
         {/* Left Sidebar Menu */}
-        <div style={{ width: '280px', backgroundColor: '#181818', padding: '20px', borderRight: '1px solid #333' }}>
+        <div style={{ width: '300px', backgroundColor: '#181818', padding: '20px', borderRight: '1px solid #333' }}>
           <button 
-            onClick={() => { setSelectedNote(null); setEditId(null); setTitle(''); setNote(''); }}
+            onClick={() => { setSelectedNote(null); setEditId(null); setTitle(''); setNote(''); setViewMode('create'); }}
             style={{ width: '100%', padding: '10px', backgroundColor: '#28a745', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', marginBottom: '15px' }}
           >
             + Create New Note
@@ -212,33 +219,63 @@ function App() {
 
           <input 
             type="text" 
-            placeholder="🔍 Search..." 
+            placeholder="🔍 Search notes..." 
             value={searchTerm} 
             onChange={(e) => setSearchTerm(e.target.value)} 
             style={{ padding: '8px', width: '100%', borderRadius: '5px', marginBottom: '15px', boxSizing: 'border-box' }} 
           />
 
-          <h3 style={{ fontSize: '16px', color: '#888', marginBottom: '10px' }}>SAVED NOTES</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '60vh', overflowY: 'auto' }}>
-            {filteredNotes.map((item) => (
-              <div 
-                key={item.id} 
-                onClick={() => setSelectedNote(item)}
-                style={{ 
-                  padding: '10px 12px', 
-                  borderRadius: '6px', 
-                  cursor: 'pointer',
-                  backgroundColor: selectedNote?.id === item.id ? '#007bff' : '#262626',
-                  color: '#fff',
-                  fontWeight: selectedNote?.id === item.id ? 'bold' : 'normal',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}
-              >
-                📝 {item.title || 'Untitled Note'}
-              </div>
-            ))}
+          <h3 style={{ fontSize: '14px', color: '#888', marginBottom: '10px', letterSpacing: '1px' }}>SAVED NOTES</h3>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '55vh', overflowY: 'auto' }}>
+            {filteredNotes.length === 0 ? (
+              <p style={{ color: '#666', fontSize: '14px' }}>No notes found.</p>
+            ) : (
+              filteredNotes.map((item) => (
+                <div 
+                  key={item.id} 
+                  style={{ 
+                    padding: '10px', 
+                    borderRadius: '6px', 
+                    backgroundColor: selectedNote?.id === item.id && viewMode === 'view' ? '#007bff' : '#262626',
+                    display: 'flex',
+                    justify: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <span 
+                    onClick={() => handleViewClick(item)}
+                    style={{ 
+                      cursor: 'pointer', 
+                      flex: 1, 
+                      whiteSpace: 'nowrap', 
+                      overflow: 'hidden', 
+                      textOverflow: 'ellipsis',
+                      fontWeight: selectedNote?.id === item.id ? 'bold' : 'normal'
+                    }}
+                  >
+                    📝 {item.title || 'Untitled'}
+                  </span>
+
+                  {/* View Button */}
+                  <button 
+                    onClick={() => handleViewClick(item)} 
+                    style={{ 
+                      backgroundColor: '#17a2b8', 
+                      color: 'white', 
+                      border: 'none', 
+                      padding: '4px 8px', 
+                      borderRadius: '4px', 
+                      cursor: 'pointer', 
+                      fontSize: '12px',
+                      marginLeft: '5px'
+                    }}
+                  >
+                    👁️ View
+                  </button>
+                </div>
+              ))
+            )}
           </div>
           
           <DeveloperContact />
@@ -246,53 +283,67 @@ function App() {
 
         {/* Right Content Area */}
         <div style={{ flex: 1, padding: '30px', backgroundColor: '#121212' }}>
-          {/* Form / Note Creator */}
-          <div style={{ backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '8px', marginBottom: '25px' }}>
-            <h3>{editId ? 'Edit Note' : 'Add New Note'}</h3>
-            <form onSubmit={handleSaveNote} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <input 
-                type="text" 
-                placeholder="Note Title..." 
-                value={title} 
-                onChange={(e) => setTitle(e.target.value)} 
-                style={{ padding: '10px', borderRadius: '5px' }} 
-              />
-              <textarea 
-                placeholder="Write your note here..." 
-                value={note} 
-                onChange={(e) => setNote(e.target.value)} 
-                rows="3" 
-                style={{ padding: '10px', borderRadius: '5px' }} 
-              />
-              <button type="submit" style={{ padding: '10px', width: '150px', borderRadius: '5px', backgroundColor: '#007bff', color: '#fff', border: 'none', cursor: 'pointer' }}>
-                {editId ? 'Update Note' : 'Save Note'}
-              </button>
-            </form>
-          </div>
-
-          {/* Selected Note Display */}
-          {selectedNote ? (
-            <div style={{ backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '8px', borderLeft: '4px solid #007bff' }}>
-              <h2>{selectedNote.title}</h2>
-              <p style={{ fontSize: '16px', lineHeight: '1.6', color: '#ddd', margin: '15px 0' }}>{selectedNote.note}</p>
-              <hr style={{ borderColor: '#333' }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px' }}>
+          
+          
+          {viewMode === 'view' && selectedNote && (
+            <div style={{ backgroundColor: '#1e1e1e', padding: '25px', borderRadius: '8px', borderLeft: '4px solid #17a2b8' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h2 style={{ margin: 0, color: '#fff' }}>{selectedNote.title}</h2>
+                <span style={{ fontSize: '12px', color: '#17a2b8', backgroundColor: '#0e2a30', padding: '4px 8px', borderRadius: '4px' }}>Viewing Mode</span>
+              </div>
+              
+              <p style={{ fontSize: '16px', lineHeight: '1.6', color: '#ddd', whiteSpace: 'pre-wrap', backgroundColor: '#181818', padding: '15px', borderRadius: '5px' }}>
+                {selectedNote.note}
+              </p>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', paddingTop: '15px', borderTop: '1px solid #333' }}>
                 <small style={{ color: '#888' }}>Created: {selectedNote.createdAt} | By: {selectedNote.userEmail}</small>
+                
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={() => handleEditClick(selectedNote)} style={{ backgroundColor: '#FF9800', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '5px', cursor: 'pointer' }}>
-                    Edit
+                  <button onClick={() => handleEditClick(selectedNote)} style={{ backgroundColor: '#FF9800', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer' }}>
+                    ✏️ Edit
                   </button>
-                  <button onClick={() => handleDeleteNote(selectedNote.id)} style={{ backgroundColor: '#ff4d4d', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '5px', cursor: 'pointer' }}>
-                    Delete
+                  <button onClick={() => handleDeleteNote(selectedNote.id)} style={{ backgroundColor: '#ff4d4d', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer' }}>
+                    🗑️ Delete
                   </button>
                 </div>
               </div>
             </div>
-          ) : (
-            <div style={{ textAlign: 'center', color: '#666', marginTop: '50px' }}>
-              <h3>Select a note from the sidebar to view details.</h3>
+          )}
+
+          {/* 2. Create/Edit Note Mode */}
+          {(viewMode === 'create' || viewMode === 'edit') && (
+            <div style={{ backgroundColor: '#1e1e1e', padding: '25px', borderRadius: '8px' }}>
+              <h3>{viewMode === 'edit' ? '✏️ Edit Note' : '➕ Add New Note'}</h3>
+              <form onSubmit={handleSaveNote} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <input 
+                  type="text" 
+                  placeholder="Note Title..." 
+                  value={title} 
+                  onChange={(e) => setTitle(e.target.value)} 
+                  style={{ padding: '12px', borderRadius: '5px', backgroundColor: '#2a2a2a', color: '#fff', border: '1px solid #444' }} 
+                />
+                <textarea 
+                  placeholder="Write your note here..." 
+                  value={note} 
+                  onChange={(e) => setNote(e.target.value)} 
+                  rows="6" 
+                  style={{ padding: '12px', borderRadius: '5px', backgroundColor: '#2a2a2a', color: '#fff', border: '1px solid #444' }} 
+                />
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button type="submit" style={{ padding: '10px 20px', borderRadius: '5px', backgroundColor: '#007bff', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+                    {viewMode === 'edit' ? 'Update Note' : 'Save Note'}
+                  </button>
+                  {viewMode === 'edit' && (
+                    <button type="button" onClick={() => setViewMode('create')} style={{ padding: '10px 20px', borderRadius: '5px', backgroundColor: '#6c757d', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </form>
             </div>
           )}
+
         </div>
       </div>
     </div>
