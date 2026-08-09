@@ -16,7 +16,7 @@ function App() {
   const [notesList, setNotesList] = useState([]);
   
   const [selectedNote, setSelectedNote] = useState(null);
-  const [viewMode, setViewMode] = useState('create'); // 'create', 'view',edit'
+  const [viewMode, setViewMode] = useState('create');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -30,16 +30,35 @@ function App() {
   const handleAuth = async (e) => {
     e.preventDefault();
     try {
-      if (isRegistering) await createUserWithEmailAndPassword(auth, email, password);
-      else await signInWithEmailAndPassword(auth, email, password);
+      if (isRegistering) {
+        await createUserWithEmailAndPassword(auth, email, password);
+        alert('Account Created Successfully!');
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
       setEmail(''); 
       setPassword('');
     } catch (error) { 
-      alert(error.message); 
+      if (error.code === 'auth/email-already-in-use') {
+        alert("This email is already registered! Switching to Login screen.");
+        setIsRegistering(false);
+      } else if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+        alert("Invalid email or password!");
+      } else {
+        alert("Authentication Error: " + error.message);
+      }
     } 
   };
 
-  const handleLogout = () => signOut(auth);
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setSelectedNote(null);
+      setViewMode('create');
+    } catch (error) {
+      alert("Error logging out: " + error.message);
+    }
+  };
 
   const fetchNotes = async (userId) => {
     try {
@@ -88,6 +107,7 @@ function App() {
       await deleteDoc(doc(db, 'student_notes', id));
       setSelectedNote(null);
       setViewMode('create');
+      alert("Note deleted successfully!");
       fetchNotes(user.uid);
     } catch (err) {
       alert("Error deleting note: " + err.message);
@@ -101,9 +121,27 @@ function App() {
     setViewMode('edit');
   };
 
-  const handleViewClick = (item) => {
+  // Hover Event to slide and open Note when hovering with mouse
+  const handleNoteHover = (item) => {
     setSelectedNote(item);
-    setViewMode('view');
+    if (viewMode !== 'edit') {
+      setViewMode('view');
+    }
+  };
+
+  const handleCreateNewClick = () => {
+    setSelectedNote(null);
+    setEditId(null);
+    setTitle('');
+    setNote('');
+    setViewMode('create');
+  };
+
+  const handleCancelEdit = () => {
+    setEditId(null);
+    setTitle('');
+    setNote('');
+    setViewMode('create');
   };
 
   const filteredNotes = notesList.filter((item) => 
@@ -181,10 +219,11 @@ function App() {
             required 
             style={{ padding: '10px', borderRadius: '5px' }} 
           />
-          <button type="submit" style={{ padding: '10px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '5px' }}>
+          <button type="submit" style={{ padding: '10px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
             {isRegistering ? 'Create Account' : 'Login'}
           </button>
         </form>
+        
         <p style={{ marginTop: '15px', cursor: 'pointer', color: '#4CAF50' }} onClick={() => setIsRegistering(!isRegistering)}>
           {isRegistering ? 'Already have an account? Login' : "Don't have an account? Register"}
         </p>
@@ -195,13 +234,52 @@ function App() {
 
   return (
     <div style={{ color: 'white', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* CSS Animation for Sliding Effect & Hover Effects */}
+      <style>{`
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateX(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        .slide-panel {
+          animation: slideIn 0.3s ease-in-out forwards;
+        }
+        .note-item {
+          transition: all 0.2s ease-in-out;
+        }
+        .note-item:hover {
+          transform: translateX(5px);
+          background-color: #333 !important;
+        }
+        .logout-btn {
+          background-color: #ff4d4d;
+          color: white;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 5px;
+          cursor: pointer;
+          font-weight: bold;
+          transition: all 0.3s ease-in-out;
+        }
+        .logout-btn:hover {
+          transform: scale(1.05);
+          background-color: #e60000;
+          box-shadow: 0 4px 8px rgba(255, 77, 77, 0.4);
+        }
+      `}</style>
+
       {/* Top Navbar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 30px', backgroundColor: '#1f1f1f', borderBottom: '1px solid #333' }}>
-        <h2>NOTES SAVIOR</h2>
+        <h2>Student Notes Save App</h2>
         <div>
           <span style={{ marginRight: '15px', fontSize: '14px', color: '#bbb' }}>{user.email}</span>
-          <button onClick={handleLogout} style={{ backgroundColor: '#ff4d4d', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '5px', cursor: 'pointer' }}>
-            Logout
+          <button className="logout-btn" onClick={handleLogout}>
+            Logout 🚪
           </button>
         </div>
       </div>
@@ -210,8 +288,9 @@ function App() {
       <div style={{ display: 'flex', flex: 1 }}>
         {/* Left Sidebar Menu */}
         <div style={{ width: '300px', backgroundColor: '#181818', padding: '20px', borderRight: '1px solid #333' }}>
+          
           <button 
-            onClick={() => { setSelectedNote(null); setEditId(null); setTitle(''); setNote(''); setViewMode('create'); }}
+            onClick={handleCreateNewClick}
             style={{ width: '100%', padding: '10px', backgroundColor: '#28a745', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', marginBottom: '15px' }}
           >
             + Create New Note
@@ -234,19 +313,20 @@ function App() {
               filteredNotes.map((item) => (
                 <div 
                   key={item.id} 
+                  className="note-item" 
+                  onMouseEnter={() => handleNoteHover(item)}
+                  onClick={() => handleNoteHover(item)}
                   style={{ 
-                    padding: '10px', 
+                    padding: '12px', 
                     borderRadius: '6px', 
                     backgroundColor: selectedNote?.id === item.id && viewMode === 'view' ? '#007bff' : '#262626',
+                    cursor: 'pointer',
                     display: 'flex',
-                    justify: 'space-between',
                     alignItems: 'center'
                   }}
                 >
                   <span 
-                    onClick={() => handleViewClick(item)}
                     style={{ 
-                      cursor: 'pointer', 
                       flex: 1, 
                       whiteSpace: 'nowrap', 
                       overflow: 'hidden', 
@@ -256,23 +336,6 @@ function App() {
                   >
                     📝 {item.title || 'Untitled'}
                   </span>
-
-                  {/* View Button */}
-                  <button 
-                    onClick={() => handleViewClick(item)} 
-                    style={{ 
-                      backgroundColor: '#17a2b8', 
-                      color: 'white', 
-                      border: 'none', 
-                      padding: '4px 8px', 
-                      borderRadius: '4px', 
-                      cursor: 'pointer', 
-                      fontSize: '12px',
-                      marginLeft: '5px'
-                    }}
-                  >
-                    👁️ View
-                  </button>
                 </div>
               ))
             )}
@@ -282,14 +345,14 @@ function App() {
         </div>
 
         {/* Right Content Area */}
-        <div style={{ flex: 1, padding: '30px', backgroundColor: '#121212' }}>
+        <div style={{ flex: 1, padding: '30px', backgroundColor: '#121212', overflow: 'hidden' }}>
           
-          
+          {/* View Mode with CSS Slide Animation */}
           {viewMode === 'view' && selectedNote && (
-            <div style={{ backgroundColor: '#1e1e1e', padding: '25px', borderRadius: '8px', borderLeft: '4px solid #17a2b8' }}>
+            <div className="slide-panel" style={{ backgroundColor: '#1e1e1e', padding: '25px', borderRadius: '8px', borderLeft: '4px solid #17a2b8' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                 <h2 style={{ margin: 0, color: '#fff' }}>{selectedNote.title}</h2>
-                <span style={{ fontSize: '12px', color: '#17a2b8', backgroundColor: '#0e2a30', padding: '4px 8px', borderRadius: '4px' }}>Viewing Mode</span>
+                <span style={{ fontSize: '12px', color: '#17a2b8', backgroundColor: '#0e2a30', padding: '4px 8px', borderRadius: '4px' }}>Hover Viewing Mode</span>
               </div>
               
               <p style={{ fontSize: '16px', lineHeight: '1.6', color: '#ddd', whiteSpace: 'pre-wrap', backgroundColor: '#181818', padding: '15px', borderRadius: '5px' }}>
@@ -311,7 +374,7 @@ function App() {
             </div>
           )}
 
-          {/* 2. Create/Edit Note Mode */}
+          {/* Create / Edit Form Mode */}
           {(viewMode === 'create' || viewMode === 'edit') && (
             <div style={{ backgroundColor: '#1e1e1e', padding: '25px', borderRadius: '8px' }}>
               <h3>{viewMode === 'edit' ? '✏️ Edit Note' : '➕ Add New Note'}</h3>
@@ -334,8 +397,9 @@ function App() {
                   <button type="submit" style={{ padding: '10px 20px', borderRadius: '5px', backgroundColor: '#007bff', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
                     {viewMode === 'edit' ? 'Update Note' : 'Save Note'}
                   </button>
+                  
                   {viewMode === 'edit' && (
-                    <button type="button" onClick={() => setViewMode('create')} style={{ padding: '10px 20px', borderRadius: '5px', backgroundColor: '#6c757d', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                    <button type="button" onClick={handleCancelEdit} style={{ padding: '10px 20px', borderRadius: '5px', backgroundColor: '#6c757d', color: '#fff', border: 'none', cursor: 'pointer' }}>
                       Cancel
                     </button>
                   )}
