@@ -94,6 +94,7 @@ function App() {
       setTitle(''); 
       setNote('');
       setViewMode('create');
+      setSelectedNote(null);
       fetchNotes(user.uid);
     } catch (err) {
       console.error("Save Error:", err);
@@ -121,11 +122,10 @@ function App() {
     setViewMode('edit');
   };
 
-  const handleNoteHover = (item) => {
+  // Click केल्यावर Direct नोट Full View मध्ये ओपन होईल
+  const handleNoteClick = (item) => {
     setSelectedNote(item);
-    if (viewMode !== 'edit') {
-      setViewMode('view');
-    }
+    setViewMode('view');
   };
 
   const handleCreateNewClick = () => {
@@ -234,26 +234,18 @@ function App() {
   return (
     <div style={{ color: 'white', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       
-      {/* Mobile/Tablet साठी CSS Rules जोडले आहेत */}
       <style>{`
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateY(15px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(0.98); }
+          to { opacity: 1; transform: scale(1); }
         }
-        .slide-panel {
-          animation: slideIn 0.3s ease-in-out forwards;
+        .full-view-panel {
+          animation: fadeIn 0.2s ease-in-out forwards;
         }
         .note-item {
           transition: all 0.2s ease-in-out;
         }
         .note-item:hover {
-          transform: translateX(5px);
           background-color: #333 !important;
         }
         .logout-btn {
@@ -266,14 +258,12 @@ function App() {
           font-weight: bold;
         }
 
-        /* Container Layout Responsiveness */
         .app-container {
           display: flex;
           flex: 1;
-          flex-direction: row;
         }
         .sidebar {
-          width: 300px;
+          width: 320px;
           background-color: #181818;
           padding: 20px;
           border-right: 1px solid #333;
@@ -284,26 +274,18 @@ function App() {
           padding: 20px;
           background-color: #121212;
           overflow-y: auto;
-          max-height: calc(100vh - 70px);
         }
 
-        /* Mobile Screeens (<= 768px) साठी बदल */
+        /* Mobile View Rules */
         @media (max-width: 768px) {
-          .app-container {
-            flex-direction: column;
-          }
           .sidebar {
             width: 100%;
             border-right: none;
-            border-bottom: 1px solid #333;
-            padding: 15px;
+            display: ${viewMode === 'view' ? 'none' : 'block'};
           }
           .main-content {
-            max-height: none;
+            display: ${viewMode === 'view' ? 'block' : 'block'};
             padding: 15px;
-          }
-          .notes-scroll-list {
-            max-height: 200px !important;
           }
         }
       `}</style>
@@ -319,15 +301,14 @@ function App() {
         </div>
       </div>
 
-      {/* Main Layout */}
       <div className="app-container">
         
-        {/* Left Sidebar */}
+        {/* Left Sidebar / Main List */}
         <div className="sidebar">
           
           <button 
             onClick={handleCreateNewClick}
-            style={{ width: '100%', padding: '10px', backgroundColor: '#28a745', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', marginBottom: '15px' }}
+            style={{ width: '100%', padding: '12px', backgroundColor: '#28a745', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', marginBottom: '15px' }}
           >
             + Create New Note
           </button>
@@ -337,12 +318,12 @@ function App() {
             placeholder="🔍 Search notes..." 
             value={searchTerm} 
             onChange={(e) => setSearchTerm(e.target.value)} 
-            style={{ padding: '8px', width: '100%', borderRadius: '5px', marginBottom: '15px', boxSizing: 'border-box' }} 
+            style={{ padding: '10px', width: '100%', borderRadius: '5px', marginBottom: '15px', boxSizing: 'border-box', backgroundColor: '#2a2a2a', color: '#fff', border: '1px solid #444' }} 
           />
 
           <h3 style={{ fontSize: '14px', color: '#888', marginBottom: '10px', letterSpacing: '1px' }}>SAVED NOTES</h3>
           
-          <div className="notes-scroll-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '45vh', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '55vh', overflowY: 'auto' }}>
             {filteredNotes.length === 0 ? (
               <p style={{ color: '#666', fontSize: '14px' }}>No notes found.</p>
             ) : (
@@ -350,10 +331,9 @@ function App() {
                 <div 
                   key={item.id} 
                   className="note-item" 
-                  onMouseEnter={() => handleNoteHover(item)}
-                  onClick={() => handleNoteHover(item)}
+                  onClick={() => handleNoteClick(item)}
                   style={{ 
-                    padding: '12px', 
+                    padding: '14px', 
                     borderRadius: '6px', 
                     backgroundColor: selectedNote?.id === item.id && viewMode === 'view' ? '#007bff' : '#262626',
                     cursor: 'pointer',
@@ -367,7 +347,8 @@ function App() {
                       whiteSpace: 'nowrap', 
                       overflow: 'hidden', 
                       textOverflow: 'ellipsis',
-                      fontWeight: selectedNote?.id === item.id ? 'bold' : 'normal'
+                      fontWeight: selectedNote?.id === item.id ? 'bold' : 'normal',
+                      fontSize: '15px'
                     }}
                   >
                     📝 {item.title || 'Untitled'}
@@ -380,27 +361,35 @@ function App() {
           <DeveloperContact />
         </div>
 
-        {/* Right Content Area */}
+        {/* Right Content Area / Direct Note Display */}
         <div className="main-content">
           
-          {/* Note View Mode (With Auto-Scroll Fix) */}
-          {viewMode === 'view' && selectedNote && (
-            <div className="slide-panel" style={{ backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '8px', borderLeft: '4px solid #17a2b8' }}>
+          {/* Direct Open Note Display Mode */}
+          {viewMode === 'view' && selectedNote ? (
+            <div className="full-view-panel" style={{ backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '8px', borderLeft: '4px solid #17a2b8' }}>
+              
+              <button 
+                onClick={handleCreateNewClick}
+                style={{ backgroundColor: '#444', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '5px', cursor: 'pointer', marginBottom: '15px', fontWeight: 'bold' }}
+              >
+                ⬅ Back to List
+              </button>
+
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
-                <h2 style={{ margin: 0, color: '#fff', wordBreak: 'break-word', fontSize: '20px' }}>{selectedNote.title}</h2>
-                <span style={{ fontSize: '12px', color: '#17a2b8', backgroundColor: '#0e2a30', padding: '4px 8px', borderRadius: '4px' }}>Viewing Note</span>
+                <h2 style={{ margin: 0, color: '#fff', wordBreak: 'break-word', fontSize: '22px' }}>{selectedNote.title}</h2>
+                <span style={{ fontSize: '12px', color: '#17a2b8', backgroundColor: '#0e2a30', padding: '4px 8px', borderRadius: '4px' }}>Opened Note</span>
               </div>
               
-              {/* Scrollable Note Content Box */}
               <div style={{ 
-                maxHeight: '350px', 
+                minHeight: '200px',
+                maxHeight: '60vh', 
                 overflowY: 'auto', 
                 backgroundColor: '#181818', 
                 padding: '15px', 
                 borderRadius: '5px',
                 border: '1px solid #333'
               }}>
-                <p style={{ fontSize: '15px', lineHeight: '1.6', color: '#ddd', whiteSpace: 'pre-wrap', margin: 0, wordBreak: 'break-word' }}>
+                <p style={{ fontSize: '16px', lineHeight: '1.6', color: '#ddd', whiteSpace: 'pre-wrap', margin: 0, wordBreak: 'break-word' }}>
                   {selectedNote.note}
                 </p>
               </div>
@@ -418,40 +407,40 @@ function App() {
                 </div>
               </div>
             </div>
-          )}
-
-          {/* Create / Edit Form Mode */}
-          {(viewMode === 'create' || viewMode === 'edit') && (
-            <div style={{ backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '8px' }}>
-              <h3>{viewMode === 'edit' ? '✏️ Edit Note' : '➕ Add New Note'}</h3>
-              <form onSubmit={handleSaveNote} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                <input 
-                  type="text" 
-                  placeholder="Note Title..." 
-                  value={title} 
-                  onChange={(e) => setTitle(e.target.value)} 
-                  style={{ padding: '12px', borderRadius: '5px', backgroundColor: '#2a2a2a', color: '#fff', border: '1px solid #444', width: '100%', boxSizing: 'border-box' }} 
-                />
-                <textarea 
-                  placeholder="Write your note here..." 
-                  value={note} 
-                  onChange={(e) => setNote(e.target.value)} 
-                  rows="8" 
-                  style={{ padding: '12px', borderRadius: '5px', backgroundColor: '#2a2a2a', color: '#fff', border: '1px solid #444', width: '100%', boxSizing: 'border-box' }} 
-                />
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button type="submit" style={{ padding: '10px 20px', borderRadius: '5px', backgroundColor: '#007bff', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
-                    {viewMode === 'edit' ? 'Update Note' : 'Save Note'}
-                  </button>
-                  
-                  {viewMode === 'edit' && (
-                    <button type="button" onClick={handleCancelEdit} style={{ padding: '10px 20px', borderRadius: '5px', backgroundColor: '#6c757d', color: '#fff', border: 'none', cursor: 'pointer' }}>
-                      Cancel
+          ) : (
+            /* Create / Edit Form Mode */
+            (viewMode === 'create' || viewMode === 'edit') && (
+              <div style={{ backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '8px' }}>
+                <h3>{viewMode === 'edit' ? '✏️ Edit Note' : '➕ Add New Note'}</h3>
+                <form onSubmit={handleSaveNote} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Note Title..." 
+                    value={title} 
+                    onChange={(e) => setTitle(e.target.value)} 
+                    style={{ padding: '12px', borderRadius: '5px', backgroundColor: '#2a2a2a', color: '#fff', border: '1px solid #444', width: '100%', boxSizing: 'border-box' }} 
+                  />
+                  <textarea 
+                    placeholder="Write your note here..." 
+                    value={note} 
+                    onChange={(e) => setNote(e.target.value)} 
+                    rows="8" 
+                    style={{ padding: '12px', borderRadius: '5px', backgroundColor: '#2a2a2a', color: '#fff', border: '1px solid #444', width: '100%', boxSizing: 'border-box' }} 
+                  />
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button type="submit" style={{ padding: '10px 20px', borderRadius: '5px', backgroundColor: '#007bff', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+                      {viewMode === 'edit' ? 'Update Note' : 'Save Note'}
                     </button>
-                  )}
-                </div>
-              </form>
-            </div>
+                    
+                    {viewMode === 'edit' && (
+                      <button type="button" onClick={handleCancelEdit} style={{ padding: '10px 20px', borderRadius: '5px', backgroundColor: '#6c757d', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+            )
           )}
 
         </div>
